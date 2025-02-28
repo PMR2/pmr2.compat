@@ -7,12 +7,7 @@ from lxml import etree
 from os.path import join
 
 from cellml.api.pmr2.utility import CellMLAPIUtility
-from cellml.pmr2.annotator import mathmlc2p_xslt
-from cellml.pmr2.annotator import re_date
 from cellml.pmr2.cmeta import Cmeta
-
-from pmr2.processor.legacy.transforms import tmpdoc2html
-
 
 # citation
 
@@ -54,7 +49,13 @@ def codegen(input_path, output_dir):
         with open(output_file, 'w') as fd:
             fd.write(v)
 
+
+# cmeta
+
 def cmeta(input_path, output_dir):
+    import re
+    re_date = re.compile('^[0-9]{4}(-[0-9]{2}){0,2}')
+
     def generate_citation():
         ids = metadata.get_cmetaid()
         if not ids:
@@ -127,7 +128,10 @@ def cmeta(input_path, output_dir):
         json.dump(result, fd)
 
 
+# maths
+
 def maths(input_path, output_dir):
+    from cellml.pmr2.annotator import mathmlc2p_xslt
     def mathc2p(s):
         r = StringIO()
         t = etree.parse(StringIO(s))
@@ -147,6 +151,7 @@ def maths(input_path, output_dir):
 # docgen
 
 def tmpdoc(input_path, output_dir):
+    from pmr2.processor.legacy.transforms import tmpdoc2html
     with open(input_path) as inc:
         output = tmpdoc2html(inc)
         output_file = join(output_dir, 'index.html')
@@ -161,10 +166,8 @@ def htmldoc(input_path, output_dir):
 
 docs = [
     (htmldoc, 'HTML Documentation'),
+    (tmpdoc, 'CellML legacy tmpdoc'),
 ]
-
-if tmpdoc2html:
-    docs.append((tmpdoc, 'CellML legacy tmpdoc'))
 
 docs_lookup = {fn.__name__: fn for fn, _ in docs}
 
