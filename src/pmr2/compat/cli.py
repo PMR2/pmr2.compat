@@ -13,6 +13,29 @@ from cellml.pmr2.cmeta import Cmeta
 
 from pmr2.processor.legacy.transforms import tmpdoc2html
 
+
+# citation
+
+def citation_cellml(input_path):
+    with open(input_path) as fd:
+        metadata = Cmeta(fd)
+    return metadata.get_license()
+
+
+citation_extract = {
+    'cellml': citation_cellml,
+}
+
+
+def citation(input_path, output_dir, license_uri, file_format=None):
+    extracted = citation_extract.get(file_format, lambda _: None)(input_path)
+    if extracted:
+        license_uri = extracted
+    output_file = join(output_dir, 'license.txt')
+    with open(output_file, 'w') as fd:
+        fd.write(license_uri)
+
+
 # codegen
 
 codegen_fileext = {
@@ -151,6 +174,7 @@ def docgen(doctype, input_path, output_dir):
 # set up commands
 
 cmd_fns = [
+    (citation, 'Citation'),
     (cmeta, 'CellML metadata'),
     (codegen, 'CellML codegen'),
     (docgen, 'CellML docgen'),
@@ -166,11 +190,13 @@ def generate_cmd_parser(cmd_fns):
         commands[cmd_fn.__name__] = cmd_fn
         sub_ap = ap_grp.add_parser(cmd_fn.__name__, help=help_text)
         argspec = getargspec(cmd_fn)
+        defaults = dict(zip(reversed(argspec.args), argspec.defaults or ()))
         for arg in argspec.args:
             sub_ap.add_argument(
                 '--' + arg.replace('_', '-'),
                 action='store',
-                required=True,
+                required=arg not in defaults,
+                default=defaults.get(arg),
             )
 
     return commands, argparser
