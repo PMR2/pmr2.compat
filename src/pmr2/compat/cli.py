@@ -3,15 +3,12 @@ import json
 from argparse import ArgumentParser
 from cStringIO import StringIO
 from inspect import getargspec
-from lxml import etree
 from os.path import join
-
-from cellml.api.pmr2.utility import CellMLAPIUtility
-from cellml.pmr2.cmeta import Cmeta
 
 # citation
 
 def citation_cellml(input_path):
+    from cellml.pmr2.cmeta import Cmeta
     with open(input_path) as fd:
         metadata = Cmeta(fd)
     return metadata.get_license()
@@ -42,8 +39,14 @@ codegen_fileext = {
 }
 
 def codegen(input_path, output_dir):
+    from cellml.api.pmr2.utility import CellMLAPIUtility
+    from pmr2.compat.urlopener import LocalOpener
+
+    loader = LocalOpener()
+
     cu = CellMLAPIUtility()
-    model = cu.model_loader.loadFromURL(input_path)
+    # model = cu.model_loader.loadFromURL(input_path)
+    model = cu.loadModel(input_path, loader=loader)
     for k, v in cu.exportCeleds(model).items():
         output_file = join(output_dir, 'code.%s.%s' % (k, codegen_fileext[k]))
         with open(output_file, 'w') as fd:
@@ -54,6 +57,7 @@ def codegen(input_path, output_dir):
 
 def cmeta(input_path, output_dir):
     import re
+    from cellml.pmr2.cmeta import Cmeta
     re_date = re.compile('^[0-9]{4}(-[0-9]{2}){0,2}')
 
     def generate_citation():
@@ -131,7 +135,13 @@ def cmeta(input_path, output_dir):
 # maths
 
 def maths(input_path, output_dir):
+    from cellml.api.pmr2.utility import CellMLAPIUtility
     from cellml.pmr2.annotator import mathmlc2p_xslt
+    from lxml import etree
+    from pmr2.compat.urlopener import LocalOpener
+
+    loader = LocalOpener()
+
     def mathc2p(s):
         r = StringIO()
         t = etree.parse(StringIO(s))
@@ -139,8 +149,8 @@ def maths(input_path, output_dir):
         return r.getvalue()
 
     cu = CellMLAPIUtility()
-    model = cu.model_loader.loadFromURL(input_path)
-    # model = cu.loadModel(target, loader=pmr_loader)
+    # model = cu.model_loader.loadFromURL(input_path)
+    model = cu.loadModel(input_path, loader=loader)
     maths = cu.extractMaths(model)
     maths = [(k, [mathc2p(m) for m in v]) for k, v in maths]
     output_file = join(output_dir, 'math.json')
