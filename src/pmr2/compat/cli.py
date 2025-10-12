@@ -164,9 +164,25 @@ def htmldoc(input_path, output_dir):
         with open(output_file, 'w') as fd:
             fd.write(inc.read())
 
+def rst(input_path, output_dir):
+    from Products.PortalTransforms.transforms.rest import rest
+    class Data:
+        def setData(self, data):
+            self.value = data
+
+    transform = rest()
+
+    with open(input_path) as inc:
+        output_file = join(output_dir, 'index.html')
+        with open(output_file, 'w') as fd:
+            data = transform.convert(inc.read(), Data())
+            fd.write(data.value)
+
+
 docs = [
     (htmldoc, 'HTML Documentation'),
     (tmpdoc, 'CellML legacy tmpdoc'),
+    (rst, 'ReStructuredText'),
 ]
 
 docs_lookup = {fn.__name__: fn for fn, _ in docs}
